@@ -1,102 +1,184 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
-public class CYF_Circle
+namespace CYF_Game
 {
-    public GameObject gameObj { get; set; }
-    public Vector3 Target { get; set; }
-}
-
-public class Spawn : MonoBehaviour 
-{
-    public GameObject circlePrefab;
-    public Sprite[] colors;
-    public List<CYF_Circle> circles;
-
-    public float speed;
-    private Vector3 Target;
-    public float endTime;
-    public float timer;
-
-    private bool isQustionAsked = false;
-
-	// Use this for initialization
-	void Start () 
+    public enum Color
     {
-        circles = new List<CYF_Circle>();
-        if(colors.Length > 0)
-        {
-            generateRandomCircles(10);
-        }
-	}
-	
-    void generateRandomCircles(int num)
-    {
-        for(int i = 0; i < num; ++i)
-        {
-            int arrayIdx = Random.Range(0, colors.Length-1);
-            Sprite color = colors[arrayIdx];
-            string name = color.name;
-
-            CYF_Circle circle = new CYF_Circle();
-            circle.gameObj = Instantiate(circlePrefab);
-            circle.gameObj.name = name;
-            circle.gameObj.GetComponent<SpriteRenderer>().sprite = color;
-            circle.gameObj.transform.position = new Vector3(Random.Range(-5.0f, 5.0f), Random.Range(-4.0f, 4.0f));
-            circles.Add(circle);
-        }
+        YELLOW,
+        BLUE
     }
 
-    private void MoveCircles()
+    public class Spawn : MonoBehaviour
     {
-        for(int i = 0; i < 10; ++i)
-        {
-            moveCircle(circles[i]);
-        }
-    }
+        public float endTime;
+        private float speed = 0.1f;
+        public float timer;
+        public GameObject circlePrefab;
+        public Sprite[] colors;
+        public List<CYF_Circle> circles;
 
-    private Vector3 newTarget()
-    {
-        float Xpos = Random.Range(-5.0f, 5.0f);
-        float Ypos = Random.Range(-4.0f, 4.0f);
-        return new Vector3(Xpos, Ypos);
-    }
+        private bool isQustionAsked = false;
+        public int QuestionIndex;
 
-    private void moveCircle(CYF_Circle circle)
-    {
-        circle.gameObj.transform.position =  Vector3.MoveTowards(circle.gameObj.transform.position, circle.Target, speed);
+        ////////////////////////////////////
+        ///// GUI 
+        public Button btnYellow, btnBlue, btnRestart, btnNextLevel;
+        public Text infoText;
+        public Text textLevel;
+        /// //////////////////////////////////////////
+        private int NumberOfCircles;
+        private int Level = 1;
 
-        if (Vector3.Distance(circle.gameObj.transform.position, circle.Target) < 0.2)
+        void Start()
         {
-            circle.Target = newTarget();
-        }
-    }
-
-    void Update()
-    {
-        if(timer < endTime)
-        {
-            MoveCircles();
-            updateTimer();
-        }
-        else
-        {
-            if (!isQustionAsked)
+            NumberOfCircles = 5;
+            circles = new List<CYF_Circle>();
+            if (colors.Length > 0)
             {
-                doQustionMarkedCircle(circles[Random.Range(0, circles.Count - 1)]);
-                isQustionAsked = true;
+                generateRandomCircles(NumberOfCircles);
+            }
+            textLevel.text = "Level " + Level;
+            btnYellow.onClick.AddListener(btn_chooseColor_onClick);
+            btnBlue.onClick.AddListener(btn_chooseColor_onClick);
+            btnRestart.onClick.AddListener(btnRestart_onClick);
+            btnNextLevel.onClick.AddListener(btnNextLevel_onClick);
+        }
+
+        private void btnNextLevel_onClick()
+        {
+            NumberOfCircles = NumberOfCircles + 1;
+            infoText.text = "";
+            generateRandomCircles(NumberOfCircles);
+            btnNextLevel.gameObject.SetActive(false);
+            isQustionAsked = false;
+            textLevel.text = "Level " + Level;
+            timer = 0;
+        }
+
+        private void btnRestart_onClick()
+        {
+            NumberOfCircles = 5;
+            Level = 1;
+            textLevel.text = "Level " + Level;
+            generateRandomCircles(NumberOfCircles);
+            infoText.text = "";
+            btnRestart.gameObject.SetActive(false);
+            isQustionAsked = false;
+            timer = 0;
+        }
+
+        private void btn_chooseColor_onClick()
+        {
+            string _clickedButtonName = UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject.name;
+            if((_clickedButtonName == "btnBlue" && circles[QuestionIndex].color == Color.YELLOW) ||
+                _clickedButtonName == "btnYellow" && circles[QuestionIndex].color == Color.BLUE)
+            {
+                Level++;
+                infoText.text = "Next level: " + Level;
+                btnNextLevel.gameObject.SetActive(true);
+            }
+            else
+            {
+                infoText.text = "You Lost." + System.Environment.NewLine + " Would you like to restart?";
+                btnRestart.gameObject.SetActive(true);
+            }
+
+            DestroyCircles();
+            SetButtonsActive(false);
+            timer = 0;
+        }
+
+        void generateRandomCircles(int num)
+        {
+            for (int i = 0; i < num; ++i)
+            {
+                int arrayIdx = Random.Range(0, colors.Length - 1);
+                Sprite color = colors[arrayIdx];
+
+                CYF_Circle circle = new CYF_Circle();
+                circle.gameObj = Instantiate(circlePrefab);
+                circle.gameObj.name = color.name;
+                circle.color = (arrayIdx == 0) ? Color.BLUE : Color.YELLOW;
+                circle.gameObj.GetComponent<SpriteRenderer>().sprite = color;
+                circle.gameObj.transform.position = new Vector3(Random.Range(-5.0f, 5.0f), Random.Range(-4.0f, 4.0f));
+                circles.Add(circle);
             }
         }
+
+        private void MoveCircles()
+        {
+            if (circles.Count > 0)
+            {
+                foreach(var circle in circles)
+                {
+                    moveCircle(circle);
+                }
+            }
+        }
+
+        private void moveCircle(CYF_Circle circle)
+        {
+            circle.gameObj.transform.position = Vector3.MoveTowards(circle.gameObj.transform.position, circle.Target, speed);
+
+            if (Vector3.Distance(circle.gameObj.transform.position, circle.Target) < 0.2)
+            {
+                circle.Target = newTarget();
+            }
+        }
+
+        void Update()
+        {
+            if (timer < endTime)
+            {
+                updateTimer();
+                MoveCircles();
+            }
+            else
+            {
+                if (!isQustionAsked)
+                {
+                    QuestionIndex = Random.Range(0, circles.Count - 1);
+                    doQustionMarkedCircle(circles[QuestionIndex]);
+                    isQustionAsked = true;
+                    SetButtonsActive(true);
+                }
+            }
+        }
+
+        private void DestroyCircles()
+        {
+            foreach (var circle in circles)
+            {
+                Destroy(circle.gameObj);
+            }
+            circles.Clear();
+        }
+
+        private void doQustionMarkedCircle(CYF_Circle circle)
+        {
+            circle.gameObj.GetComponent<SpriteRenderer>().sprite = colors[2];
+        }
+
+        private void updateTimer()
+        {
+            timer += Time.deltaTime;
+        }
+
+        private void SetButtonsActive(bool isactive)
+        {
+            btnBlue.gameObject.SetActive(isactive);
+            btnYellow.gameObject.SetActive(isactive);
+        }
+
+        private Vector3 newTarget()
+        {
+            float Xpos = Random.Range(-5.0f, 5.0f);
+            float Ypos = Random.Range(-4.0f, 4.0f);
+            return new Vector3(Xpos, Ypos);
+        }
     }
 
-    private void doQustionMarkedCircle(CYF_Circle circle)
-    {
-        circle.gameObj.GetComponent<SpriteRenderer>().sprite = colors[2];
-    }
-
-    private void updateTimer()
-    {
-        timer += Time.deltaTime;
-    }
 }
