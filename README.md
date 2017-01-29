@@ -1,4 +1,4 @@
-<h1 align="center"><b>Can You Follow Me</b>.</h1>
+<h1 align="center"><b>Can You Follow</b></h1>
 
 
 <div>
