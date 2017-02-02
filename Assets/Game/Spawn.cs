@@ -7,30 +7,30 @@ namespace CYF_Game
 {
     public enum Color
     {
+        BLUE,
         YELLOW,
-        BLUE
+        GREEN
     }
 
     public class Spawn : MonoBehaviour
     {
         public float endTime;
-        private float speed = 0.1f;
         public float timer;
         public GameObject circlePrefab;
         public Sprite[] colors;
-        public List<CYF_Circle> circles;
-
-        private bool isQustionAsked = false;
-        public int QuestionIndex;
 
         ////////////////////////////////////
         ///// GUI 
-        public Button btnYellow, btnBlue, btnRestart, btnNextLevel;
+        public Button btnYellow, btnBlue, btnGreen, btnRestart, btnNextLevel;
         public Text infoText;
         public Text textLevel;
         /// //////////////////////////////////////////
         private int NumberOfCircles;
         private int Level = 1;
+        private bool isQustionAsked = false;
+        private float speed = 0.1f;
+        private int QuestionIndex;
+        public List<CYF_Circle> circles;
 
         void Start()
         {
@@ -42,6 +42,7 @@ namespace CYF_Game
             }
             textLevel.text = "Level " + Level;
             btnYellow.onClick.AddListener(btn_chooseColor_onClick);
+            btnGreen.onClick.AddListener(btn_chooseColor_onClick);
             btnBlue.onClick.AddListener(btn_chooseColor_onClick);
             btnRestart.onClick.AddListener(btnRestart_onClick);
             btnNextLevel.onClick.AddListener(btnNextLevel_onClick);
@@ -73,8 +74,9 @@ namespace CYF_Game
         private void btn_chooseColor_onClick()
         {
             string _clickedButtonName = UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject.name;
-            if((_clickedButtonName == "btnBlue" && circles[QuestionIndex].color == Color.YELLOW) ||
-                _clickedButtonName == "btnYellow" && circles[QuestionIndex].color == Color.BLUE)
+            if((_clickedButtonName == "btnBlue" && circles[QuestionIndex].color == Color.BLUE) ||
+                (_clickedButtonName == "btnYellow" && circles[QuestionIndex].color == Color.YELLOW) ||
+                (_clickedButtonName == "btnGreen" && circles[QuestionIndex].color == Color.GREEN))
             {
                 Level++;
                 infoText.text = "Next level: " + Level;
@@ -87,7 +89,7 @@ namespace CYF_Game
             }
 
             DestroyCircles();
-            SetButtonsActive(false);
+            SetButtonsActive(false, false, false);
             timer = 0;
         }
 
@@ -95,13 +97,21 @@ namespace CYF_Game
         {
             for (int i = 0; i < num; ++i)
             {
-                int arrayIdx = Random.Range(0, colors.Length - 1);
+                int arrayIdx;
+                if(Level >= 10)
+                {
+                    arrayIdx = Random.Range(0, 3);
+                }
+                else
+                {
+                    arrayIdx = Random.Range(0, 2);
+                }
                 Sprite color = colors[arrayIdx];
 
                 CYF_Circle circle = new CYF_Circle();
                 circle.gameObj = Instantiate(circlePrefab);
                 circle.gameObj.name = color.name;
-                circle.color = (arrayIdx == 0) ? Color.BLUE : Color.YELLOW;
+                circle.color = (Color)arrayIdx;
                 circle.gameObj.GetComponent<SpriteRenderer>().sprite = color;
                 circle.gameObj.transform.position = new Vector3(Random.Range(-5.0f, 5.0f), Random.Range(-4.0f, 4.0f));
                 circles.Add(circle);
@@ -143,7 +153,14 @@ namespace CYF_Game
                     QuestionIndex = Random.Range(0, circles.Count - 1);
                     doQustionMarkedCircle(circles[QuestionIndex]);
                     isQustionAsked = true;
-                    SetButtonsActive(true);
+                    if(Level >= 10)
+                    {
+                        SetButtonsActive(true, true, true);
+                    }
+                    else
+                    {
+                        SetButtonsActive(true, true, false);
+                    }
                 }
             }
         }
@@ -159,7 +176,7 @@ namespace CYF_Game
 
         private void doQustionMarkedCircle(CYF_Circle circle)
         {
-            circle.gameObj.GetComponent<SpriteRenderer>().sprite = colors[2];
+            circle.gameObj.GetComponent<SpriteRenderer>().sprite = colors[3];
         }
 
         private void updateTimer()
@@ -167,10 +184,11 @@ namespace CYF_Game
             timer += Time.deltaTime;
         }
 
-        private void SetButtonsActive(bool isactive)
+        private void SetButtonsActive(bool activateBlue, bool activateYellow, bool activateGreen)
         {
-            btnBlue.gameObject.SetActive(isactive);
-            btnYellow.gameObject.SetActive(isactive);
+            btnBlue.gameObject.SetActive(activateBlue);
+            btnYellow.gameObject.SetActive(activateYellow);
+            btnGreen.gameObject.SetActive(activateGreen);
         }
 
         private Vector3 newTarget()
